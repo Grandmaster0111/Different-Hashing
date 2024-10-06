@@ -1,61 +1,82 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 
-# Function to hash an integer into a bitmap
-def bitmap_hash(value, bitmap_size):
-    # Hashing function - Using modulo operator to constrain hash within bitmap size
-    hash_value = value % bitmap_size
-    return hash_value
+st.title("Bitmap Hashing with Pictorial Representation")
 
-# Function to create a bitmap
-def create_bitmap(values, bitmap_size):
-    # Initialize an empty bitmap
+# Bitmap Hashing Functions
+
+def initialize_bitmap(bitmap_size):
+    """Initialize the bitmap with zeros."""
     bitmap = np.zeros(bitmap_size, dtype=int)
-    
-    # Hash each value and set corresponding bit
-    for value in values:
-        hash_value = bitmap_hash(value, bitmap_size)
-        bitmap[hash_value] = 1  # Set the bit at the hashed index to 1
-    
     return bitmap
 
-# Function to remove index from bitmap
-def remove_from_bitmap(bitmap, index_to_remove):
-    if 0 <= index_to_remove < len(bitmap):
-        bitmap[index_to_remove] = 0  # Set the bit at the specified index to 0
+def hash_function(value, bitmap_size):
+    """Compute the hash function for the given value."""
+    return value % bitmap_size
+
+def insert_into_bitmap(bitmap, value, bitmap_size):
+    """Insert a value into the bitmap."""
+    hash_value = hash_function(value, bitmap_size)
+    
+    # Set the bit at the hashed index to 1
+    bitmap[hash_value] = 1
     return bitmap
 
-# Visualization function to display bitmap
-def visualize_bitmap(bitmap):
-    fig, ax = plt.subplots(figsize=(10, 2))
-    ax.imshow(bitmap[np.newaxis, :], cmap='Greens', aspect='auto')
-    ax.set_xticks(np.arange(bitmap.size))
-    ax.set_yticks([])
-    plt.title('Bitmap Visualization')
-    st.pyplot(fig)
+def bitmap_hashing(numbers, bitmap_size):
+    """Main Bitmap Hashing algorithm."""
+    bitmap = initialize_bitmap(bitmap_size)
 
-# Streamlit interface
-st.title("Bitmap Hashing")
+    for num in numbers:
+        # Insert the element into the bitmap
+        bitmap = insert_into_bitmap(bitmap, num, bitmap_size)
 
-# Input fields
-input_values = st.text_input("Enter a list of integer values (comma separated)", "1, 15, 23, 7, 50, 92")
-bitmap_size = st.slider("Select the size of the bitmap", min_value=10, max_value=100, value=50)
+    return bitmap
 
-# Convert input values into a list of integers
-values = list(map(int, input_values.split(',')))
+# Streamlit app
 
-# Create bitmap
-bitmap = create_bitmap(values, bitmap_size)
+bitmap_size = st.number_input('Enter your bitmap size: ', min_value=1)
 
-# Option to delete an index
-index_to_remove = st.number_input("Enter the index to delete (0 to bitmap size - 1)", min_value=0, max_value=bitmap_size-1, value=0)
-if st.button("Remove Index"):
-    bitmap = remove_from_bitmap(bitmap, index_to_remove)
+if bitmap_size != 0:
 
-# Show the updated bitmap
-st.write(f"Bitmap (Size {bitmap_size}):")
-st.write(bitmap)
+    st.write('Select which operation you want to perform:')
+    st.write('1. Insertion')
+    st.write('2. Deletion')
 
-# Visualize the updated bitmap
-visualize_bitmap(bitmap)
+    if 'my_set' not in st.session_state:
+        st.session_state.my_set = set()
+
+    # Input for adding a value
+    inpu = st.number_input("Enter a number to add:", min_value=0)
+    col1, col2 = st.columns(2)
+
+    # Insert button
+    with col1:
+        if st.button("Insert"):
+            st.session_state.my_set.add(inpu)
+            st.success(f"Added {inpu} to the set.")
+
+    with col2:
+        # Input for removing a value
+        if st.button("Delete"):
+            st.session_state.my_set.discard(inpu)
+            st.success(f"Removed {inpu} from the set.")
+
+    if len(st.session_state.my_set) > 0:
+        # Execute bitmap hashing
+        current_bitmap = bitmap_hashing(list(st.session_state.my_set), bitmap_size)
+
+        # Display current bitmap in a pictorial table format
+        st.write("Bitmap:")
+
+        # Create a DataFrame to visualize bitmap as a table
+        bitmap_df = pd.DataFrame({
+            "Index": list(range(bitmap_size)),
+            "Bitmap Value": current_bitmap
+        })
+
+        # Display the table for the bitmap
+        st.table(bitmap_df)
+
+        # Display the current set and its bitmap state
+        st.write("Current Set:", st.session_state.my_set)
